@@ -1,0 +1,57 @@
+        for j in range(len(list_data[i])):
+            if file_list[list_data[i][j]] not in file_list.keys():
+                file_list[list_data[i][j]] = [i, i+1] if i < len(list_data) else [i]
+            for k in range(i + 1, len(list_data)):
+                if list_data[i][j] in list_data[k]:
+                    file_list[list_data[i][j]].extend([k, k+1] if k < len(list_data) else [k])
+    fin_list = []
+    for key, value in file_list:
+        if len(set(value)) < 4:
+            fin_list.append("{} [incomplete]".format(key))
+        else:
+            fin_list.append(key)
+    return fin_list
+
+
+def LIST(conf, server_sock):
+    """
+    conf = {"SERVER": [(ip, port), (ip2, port2), ...}
+
+    :param conf:
+    :param server_sock:
+    :return:
+    """
+    list_data = []
+    for server_add in conf["SERVER"]:
+        list_data.append(get_list(server_add, server_sock))
+    final_list = create_final_list(list_data)
+    print("\n".join(final_list))
+
+
+def main():
+    """
+
+    :return:
+    """
+    conf = read_config()
+    while True:
+        # Check: input or raw input needs to be debugged
+        command = input()
+        method = command.split()[0] # GET 1.txt, PUT 1.txt, LIST
+        if method not in ["GET", "PUT", "LIST"]:
+            print("Wrong method. Please try again with method name as GET, PUT or LIST")
+        if method == "PUT":
+            if os.path.exists(command.split()[1]):  # TODO if folder name provided without filename
+                PUT(conf, command.split()[1])
+        # TODO: implement LIST
+        if method == "GET":
+            GET(conf, command.split()[1])
+        if method == "LIST":
+            LIST(conf)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as e:
+        print(e)

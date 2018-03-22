@@ -1,0 +1,55 @@
+import os
+import socket
+
+
+def read_config(url="./dfc.conf"):
+    conf_file = open(url)
+    conf = {'SERVER': []}
+    for line in conf_file.readlines():
+        if "Server" in line.split():
+            address = line.split()[2].strip().split(":")
+            conf['SERVER'].append((address[0], int(address[1])))
+        if 'MAX_REQUEST_LEN' in line.split():
+            conf['MAX_REQUEST_LEN'] = line.split()[1].strip()
+        if 'Username' in line:
+            conf['Username'] = line.split(":")[1].strip()
+        if 'Password' in line:
+            conf['Password'] = line.split(":")[1].strip()
+        if 'MAX_REQUEST_LEN' in line:
+            conf['MAX_REQUEST_LEN'] = int(line.split()[1].strip())
+    return conf
+
+
+def PUT(conf, filename):
+    """
+    (1,2)(2,3)(3,4)(4,1)
+    (4,1)(1,2)(2,3)(3,4)
+
+    x ??  MD5hash(filename) % 4 >> 0,1,2,3
+    :param conf:
+    :param filename:
+    :return:
+    """
+    with open(filename, 'rb') as file:
+        lines = file.readlines()
+        num_lines = len(lines)
+        limit = int(num_lines / 4)
+
+        send_part_file(lines[:limit], conf['SERVER'][3], "{}_{}".format(filename, "part1"))  # purnima.txt => purnima.txt_part1
+        send_part_file(lines[:limit], conf['SERVER'][0], "{}_{}".format(filename, "part1"))
+
+        start = limit
+        limit *= 2
+        send_part_file(lines[start:limit], conf['SERVER'][0], "{}_{}".format(filename, "part2"))
+        send_part_file(lines[start:limit], conf['SERVER'][1], "{}_{}".format(filename, "part2"))
+
+        start = limit
+        limit += int(num_lines / 4)
+        send_part_file(lines[start:limit], conf['SERVER'][1], "{}_{}".format(filename, "part3"))
+        send_part_file(lines[start:limit], conf['SERVER'][2], "{}_{}".format(filename, "part3"))
+
+        start = limit
+        send_part_file(lines[start:], conf['SERVER'][2], "{}_{}".format(filename, "part4"))
+        send_part_file(lines[start:], conf['SERVER'][3], "{}_{}".format(filename, "part4"))
+
+

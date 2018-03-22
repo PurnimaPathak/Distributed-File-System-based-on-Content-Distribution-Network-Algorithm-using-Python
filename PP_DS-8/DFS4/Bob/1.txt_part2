@@ -1,0 +1,55 @@
+
+    part2 = get_part_file(conf['SERVER'][0], conf['SERVER'][1], "{}_part{}".format(file_name, str(2)))
+    file_name, file_data = concat_part(file_name, part2)
+
+    part3 = get_part_file(conf['SERVER'][1], conf['SERVER'][2], "{}_part{}".format(file_name, str(3)))
+    file_name, file_data = concat_part(file_name, part3)
+
+    part4 = get_part_file(conf['SERVER'][2], conf['SERVER'][3], "{}_part{}".format(file_name, str(4)))
+    file_name, file_data = concat_part(file_name, part4)
+
+    if None in [part1, part2, part3, part4]:
+        print("File is incomplete.")
+    file = open(file_name, 'wb')
+    file.write(file_data)
+    file.close()
+
+
+def concat_part(file_name, part1):
+    """
+
+    :param file_name:
+    :param part1:
+    :return:
+    """
+    file_data = None
+    if part1:
+        file_data = part1
+    else:
+        file_name += ' [incomplete]' if 'incomplete' not in file_name else ''
+    return file_name, file_data
+
+
+def get_list(server_address, server_sock):
+    try:
+        server_sock.connect(server_address)
+        server_sock.send("LIST".encode('utf-8'))
+        data = server_sock.recv()
+        return data.decode().split() # abc.jgp purnima.txt vikrant.png
+    except Exception as e:
+        print("Error: {}".format(e))
+        return None
+
+
+def create_final_list(list_data):
+    """
+    list_data = {serv1: [1_1, 1_2, 2, 3, 4]
+                 #serv2: [1_2, 1_3]
+                 #serv3: [1_3, 1_4]
+                 serv4: [1_4, 1_1]
+                }
+    :param list_data:
+    :return:
+    """
+    file_list = {}  # {1:[0, 1]}
+    for i in range(list_data):
