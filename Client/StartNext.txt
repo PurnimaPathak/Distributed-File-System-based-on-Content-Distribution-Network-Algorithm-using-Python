@@ -1,0 +1,62 @@
+import signal
+import socket
+import threading
+
+from Server.business_logic import get_data, get_list
+from Server.constants import ROOT_DIR
+from Server.utils import shutdown, parse_filename, encrypt_data, parse_request, remove_null_byte
+
+
+class Server:
+    """
+
+    """
+    def __init__(self, config):
+        """
+
+        :param config:
+        """
+        signal.signal(signal.SIGINT, shutdown)  # Shutdown on Ctrl+C
+        self.serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Create a TCP socket
+        self.serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Re-use the socket
+        self.serverSocket.bind(
+            (config['HOSTNAME'], 10001))  # bind the socket to a public host, and a port
+        self.serverSocket.listen(10)  # become a server socket
+        self.config = config
+        self.__clients = {}
+
+    def listen_from_client(self):
+        """
+
+        :return:
+        """
+        print("Listening....")
+        while True:
+            (client_socket, client_address) = self.serverSocket.accept()  # Establish the connection
+            d = threading.Thread(name=self._getClientName(client_address),
+                                 target=self.listen(client_socket, client_address),
+                                 args=(client_socket, client_address))
+            d.setDaemon(True)
+            d.start()
+        shutdown(self.serverSocket, 0, 0)
+
+    def _getClientName(self, client_address):
+        return "Client"
+
+    def listen(self, client_socket, client_address):
+        request_client = client_socket.recv(int(self.config['MAX_REQUEST_LEN']))
+        request_method = parse_request(request_client)
+        if request_method == "GET":
+            client_socket.send(get_data(request_client))
+        if request_method == "PUT":
+            with open(ROOT_DIR + "/" + parse_filename(request_client), 'wb') as file:
+                data = client_socket.recv(self.config['MAX_REQUEST_LEN'])
+                while data:
+                    data = client_socket.recv(self.config['MAX_REQUEST_LEN'])
+                    file.write(encrypt_data(data))
+        if request_method == "LIST":
+            client_socket.send(get_list())
+        client_socket.close()
+        return
+
+
